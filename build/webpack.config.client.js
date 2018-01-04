@@ -27,13 +27,14 @@ const config = webpackMerge(baseConfig, {
 });
 
 if (isDev) {
+  config.devtool = '#cheap-module-eval-source-map';
   config.entry = {
     app: ['react-hot-loader/patch', path.join(__dirname, '../client/app.js')]
-  }
+  };
   config.devServer = {
     host: '0.0.0.0',
     port: '8800',
-    contentBase: path.join(__dirname, '../dist'),
+    // contentBase: path.join(__dirname, '../dist'),
     hot: true,
     overlay: {
       errors: true
@@ -45,7 +46,7 @@ if (isDev) {
     proxy: {
       '/api': 'http://localhost:8888'
     }
-  }
+  };
   config.plugins.push(new webpack.HotModuleReplacementPlugin);
 }
 

@@ -1,5 +1,6 @@
 import React from 'react';
 import Route from '../config/router';
+import AppBar from './layout/app-bar';
 
 export default class App extends React.Component {
   componentDidMount() {
@@ -8,7 +9,7 @@ export default class App extends React.Component {
 
   render() {
     return [
-      <div key="app">app</div>,
+      <AppBar key="bar" />,
       <Route key="router" />
     ];
   }
