@@ -3,13 +3,14 @@ const webpack = require('webpack');
 const path = require('path');
 const MemoryFs = require('memory-fs');
 const proxy = require('http-proxy-middleware');
-const ReactDOMServer = require('react-dom/server');
+
+const serverRender = require('./server-render');
 
 const serverConfig = require('../../build/webpack.config.server');
 
 const getTemplate = () => {
   return new Promise((resolve, reject) => {
-    axios.get('http://localhost:8888/public/index.html').then(res => {
+    axios.get('http://localhost:8888/public/server.ejs').then(res => {
       resolve(res.data);
     }).catch(reject => {
       reject(reject);
@@ -17,12 +18,25 @@ const getTemplate = () => {
   })
 }
 
-const Module = module.constructor;
+// const Module = module.constructor;
+const NativeModule = require('module');
+const vm = require('vm');
+
+
+const getModuleFromString = (bundle, filename) => {
+  const m = {exports: {}};
+  const wrapper = NativeModule.wrap(bundle);
+  const script = new vm.Script(wrapper, {filename: filename, displayErrors: true});
+  const result = script.runInThisContext();
+  result.call(m.exports, m.exports, require, m);
+  return m;
+}
 
 const mfs = new MemoryFs();
 const serverCompiler = webpack(serverConfig);
 serverCompiler.outputFileSystem = mfs;
-let serverBundle;
+let serverBundle, createStoreMap;
+
 serverCompiler.watch({}, (err, stats) => {
   if (err) throw err;
   // stats是一个buffer
@@ -33,11 +47,12 @@ serverCompiler.watch({}, (err, stats) => {
   const bundlePath = path.join(serverConfig.output.path, serverConfig.output.filename);
 
   console.log(bundlePath);
-  
+
   const bundle = mfs.readFileSync(bundlePath, 'utf-8');
-  const m = new Module();
-  m._compile(bundle, 'server-entry.js');
-  serverBundle = m.exports.default;
+  // const m = new Module();
+  // m._compile(bundle, 'server-entry.js');
+  const m = getModuleFromString(bundle, 'server-entry.js');
+  serverBundle = m.exports;
 })
 
 module.exports = function (app) {
@@ -46,10 +61,14 @@ module.exports = function (app) {
     target: 'http://localhost:8800'
   }));
 
-  app.get('*', function (req, res) {
+  app.get('*', function (req, res, next) {
+    if (!serverBundle) {
+      return res.send('waiting for compile, refresh later');
+    }
     getTemplate().then(tpl => {
-      const content = ReactDOMServer.renderToString(serverBundle);
-      res.send(tpl.replace('<!-- app -->', content));
+      return serverRender(serverBundle, tpl, req, res);
+    }).catch(err => {
+      next(err);
     });
   });
 }

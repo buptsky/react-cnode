@@ -8,8 +8,8 @@ export default class App extends React.Component {
 
   render() {
     return [
-      <div>app</div>,
-      <Route />
+      <div key="app">app</div>,
+      <Route key="router" />
     ];
   }
 }
