@@ -4,12 +4,11 @@
     ".git",
     "node_modules/**/node_modules",
     ".eslintrc",
-    "client",
-    "build"
+    "client/*",
+    "build/*"
   ],
   "env": {
     "NODE_ENV": "development"
   },
-  "verbose": true,
-  "ext": "js"
+  "verbose": true
 }
